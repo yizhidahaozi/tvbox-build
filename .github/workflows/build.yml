@@ -163,7 +163,7 @@ jobs:
           echo "$COMMIT_MESSAGE" > desc.txt
 
       - name: Release App
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: ${{ env.commit }}
         with:
           name: ${{ env.tag }}
