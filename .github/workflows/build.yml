@@ -160,9 +160,9 @@ jobs:
           cd ../TVBoxOSC
           export LESSCHARSET=utf-8
           if [ "${{ env.commit }}" == "${myLastCommit}" ]; then
-            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }} -1 |sed -e 's# \{2,\}#\n#g' -e '/^Merge pull/d' -e 's#"#\\"#g' -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
+            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }} -1 |sed -e "s# \{2,\}#\n#g" -e "/^Merge \(pull\|branch\|remote\)/d" -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
           else
-            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }}...${myLastCommit:0:7} |sed -e 's# \{2,\}#\n#g' -e '/^Merge pull/d' -e 's#"#\\"#g' -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
+            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }}...${myLastCommit:0:7} |sed -e "s# \{2,\}#\n#g" -e "/^Merge \(pull\|branch\|remote\)/d" -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
           fi
           echo -e "Credit: [${{ matrix.userName }}](${{ matrix.repoUrl }})\n\`\`\`${COMMIT_MESSAGE}\n\`\`\`" > Changelog.txt
           echo "$COMMIT_MESSAGE" > desc.txt
