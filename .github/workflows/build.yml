@@ -2,7 +2,7 @@ name: Build
 
 on:
   schedule:
-    - cron: 6 */6 * * *
+    - cron: 6 */8 * * *
   #  push:
   #    branches:
   #      - main
@@ -23,7 +23,6 @@ jobs:
           - userName: q215613905
             repoUrl: https://github.com/q215613905/TVBoxOS
             branchName: main
-            javaVersion: 8
           - userName: takagen99
             repoUrl: https://github.com/takagen99/Box
             branchName: main
@@ -99,15 +98,22 @@ jobs:
           sed -i "/   versionName/c\\versionName '${{ env.tag }}'" ./app/build.gradle
           sed -i "/   applicationId/c\\applicationId '${{ matrix.userName }}.tvbox.osc'" ./app/build.gradle
           sed -i "/android:text=/c\\        android:text=\"v${{ env.tag }}\\\\n本软件只提供聚合展示功能，所有资源来自网上, 软件不参与任何制作, 上传, 储存, 下载等内容。 软件仅供学习参考, 请于安装后24小时内删除。\\\\n\\\\n打包分发请保留出处\\\\n${{ matrix.repoUrl }}\"" ./app/src/main/res/layout/dialog_about.xml
-          echo "fix library"
+          echo "fix crosswalk library"
           if grep -q 'crosswalk' build.gradle; then
             sed -i "/crosswalk/a\   maven { url 'https://celetor.github.io/crosswalk/releases/crosswalk/android/maven2' }\n maven { url 'https://maven.aliyun.com/repository/jcenter' }" build.gradle
           else
             sed -i "/jitpack.io/a\  maven { url 'https://celetor.github.io/crosswalk/releases/crosswalk/android/maven2' }\n maven { url 'https://maven.aliyun.com/repository/jcenter' }" build.gradle
           fi
-
+          if [ "${{ matrix.userName }}" == "takagen99" ]; then
+            echo "fix ApiConfig.java"
+            #sed -i "/LOG./c\\//LOG.i" ./app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java
+          else
+            echo "fix gradle.properties"
+            sed -i "/2048m --add-opens java.base/c\\org.gradle.jvmargs=-Xmx2048m --add-opens java.base/java.io=ALL-UNNAMED" ./gradle.properties
+          fi 
+          
       - name: Setup JDK
-        if: ${{ env.commit }}
+        if: ${{ env.commit && matrix.javaVersion }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -115,9 +121,7 @@ jobs:
 
       - name: Setup Gradle
         if: ${{ env.commit }}
-        uses: gradle/gradle-build-action@v2
-        with:
-          cache-disabled: false
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build With Gradle
         if: ${{ env.commit }}
@@ -164,7 +168,7 @@ jobs:
           else
             COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }}...${myLastCommit:0:7} |sed -e "s# \{2,\}#\n#g" -e "/^Merge \(pull\|branch\|remote\)/d" -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
           fi
-          echo -e "Credit: [${{ matrix.userName }}](${{ matrix.repoUrl }})\n\`\`\`${COMMIT_MESSAGE}\n\`\`\`" > Changelog.txt
+          echo -e "Credit: [${{ matrix.userName }}](${{ matrix.repoUrl }})\n\`\`\`\n${COMMIT_MESSAGE}\n\`\`\`" > Changelog.txt
           echo "$COMMIT_MESSAGE" > desc.txt
 
       - name: Release App
