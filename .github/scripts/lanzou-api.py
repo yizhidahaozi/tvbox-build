@@ -7,11 +7,6 @@ import logging
 import os
 import sys
 import time
-import requests
-
-import urllib3
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 日志设置
 logger = logging.getLogger('lanzou-api')
@@ -21,6 +16,19 @@ console.setFormatter(logging.Formatter(
     fmt="%(asctime)s [line:%(lineno)d] %(funcName)s %(levelname)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"))
 logger.addHandler(console)
+
+try:
+    import requests
+except ImportError:
+    logger.error('requests模块未安装')
+    from pip._internal import main as pip_main
+
+    pip_main(['install', 'requests'])
+    import requests
+
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def retry(times=3, interval=10):

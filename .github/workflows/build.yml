@@ -60,9 +60,7 @@ jobs:
       - name: Clone Source Code
         if: ${{ env.commit }}
         working-directory: TVBoxOSC
-        run: |
-          #git clone -b ${{ matrix.branchName }} ${{ matrix.repoUrl }} TVBoxOSC
-          git fetch --unshallow
+        run: git fetch --unshallow
 
       - name: Compress Source Code
         if: ${{ env.commit }}
@@ -91,9 +89,9 @@ jobs:
         if: ${{ env.commit }}
         working-directory: TVBoxOSC
         run: |
-          echo "modify version info"
+          echo "修改版本信息"
           version_code=$(git rev-list --count HEAD)
-          echo "version code: $version_code"
+          echo "版本号: $version_code, 版本名: ${{ env.tag }}"
           sed -i "/   versionCode/c\\versionCode ${version_code}" ./app/build.gradle
           sed -i "/   versionName/c\\versionName '${{ env.tag }}'" ./app/build.gradle
           sed -i "/   applicationId/c\\applicationId '${{ matrix.userName }}.tvbox.osc'" ./app/build.gradle
@@ -104,14 +102,14 @@ jobs:
           else
             sed -i "/jitpack.io/a\  maven { url 'https://celetor.github.io/crosswalk/releases/crosswalk/android/maven2' }\n maven { url 'https://maven.aliyun.com/repository/jcenter' }" build.gradle
           fi
-          if [ "${{ matrix.userName }}" == "takagen99" ]; then
-            echo "fix ApiConfig.java"
-            #sed -i "/LOG./c\\//LOG.i" ./app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java
-          else
-            echo "fix gradle.properties"
+          if [ "${{ matrix.userName }}" == "q215613905" ]; then
+            echo "修改q215613905的gradle.properties，使之可编译"
             sed -i "/2048m --add-opens java.base/c\\org.gradle.jvmargs=-Xmx2048m --add-opens java.base/java.io=ALL-UNNAMED" ./gradle.properties
-          fi 
-          
+          fi
+          echo "" > ./local.properties
+          echo "在pyramid/build.gradle中注释掉带有buildPython的行"
+          sed -i 's/buildPython/\/\/buildPython/g'  ./pyramid/build.gradle
+
       - name: Setup JDK
         if: ${{ env.commit && matrix.javaVersion }}
         uses: actions/setup-java@v4
@@ -119,9 +117,17 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.javaVersion }}
 
+      - name: Setup Python
+        if: ${{ env.commit }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
       - name: Setup Gradle
         if: ${{ env.commit }}
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-disabled: true
 
       - name: Build With Gradle
         if: ${{ env.commit }}
@@ -157,8 +163,6 @@ jobs:
         if: ${{ env.commit && !inputs.rebuild }}
         run: |
           cd actions
-          # myLastCommit=`git log --oneline |grep -o '[a-z0-9]\{40\}' |head -1`
-          # myLastCommit=$(grep "${{ matrix.userName }}" README.md |grep -o '[a-z0-9]\{40\}')
           myLastCommit=$(grep '[a-z0-9]\{40\}' ./log/${{ matrix.userName }}.txt)
           echo $myLastCommit
           cd ../TVBoxOSC
@@ -192,8 +196,6 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git pull
-          # sed -i "/Update Time/c\\+ Update Time: ${{ env.update_time }}" README.md
-          # sed -i "/${{ matrix.userName }}/s#Updated: [a-zA-Z0-9]*#Updated: ${{ env.commit }}#" README.md
           echo "${{ env.commit }}" > ./log/${{ matrix.userName }}.txt
           git add --all
           git commit -m "${{ matrix.userName }}_${{ env.commit }}"
@@ -201,4 +203,6 @@ jobs:
 
       - name: Upload App To Lanzou
         if: ${{ env.commit && env.ylogin && !inputs.rebuild }}
-        run: python3 ${{ github.workspace }}/actions/.github/scripts/lanzou-api.py "${{ github.workspace }}/TVBoxOSC/apk/" "$lanzou_folder_id" "${{ github.workspace }}/TVBoxOSC/desc.txt"
+        run: |
+          pip install requests
+          python ${{ github.workspace }}/actions/.github/scripts/lanzou-api.py "${{ github.workspace }}/TVBoxOSC/apk/" "$lanzou_folder_id" "${{ github.workspace }}/TVBoxOSC/desc.txt"
